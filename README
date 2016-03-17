@@ -1,0 +1,5 @@
+## Bitcoin automation trading
+
+Speculator is a Bitcoin trading bot written in scala powered by play framework and akka.
+It use angular, bootstrap and d3.js in UI and redis as storage.
+

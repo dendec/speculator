@@ -1,0 +1,28 @@
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <div class="row">
+            <div class="col-md-2">
+                <select class="form-control input-sm" ng-options="exchangeName for exchangeName in exchangeNames" ng-model="selectedExchangeName"></select>
+            </div>
+            <div class="col-md-1">
+                <select class="form-control input-sm" ng-options="exchange.currencies for exchange in exchanges[selectedExchangeName]" ng-model="selectedExchange"></select>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <input type="date" class="input-sm form-control" ng-model="selectedFrom"/>
+                    <span class="input-group-addon">to</span>
+                    <input type="date" class="input-sm form-control" ng-model="selectedTo"/>
+                </div>
+            </div>
+            <div class="col-md-1">
+                <select class="form-control input-sm" ng-options="o as o for o in chartTypes" ng-model="selectedChartType"></select>
+            </div>
+            <div class="col-md-1">
+                <select class="form-control input-sm" ng-options="duration.name for duration in durations" ng-hide="selectedChartType == 'chart'" ng-model="selectedDuration"></select>
+            </div>
+        </div>
+    </div>
+    <div class="panel-body">
+        <chart chart-data="points" type="{{drawingMethod}}"></chart>
+    </div>
+</div>
