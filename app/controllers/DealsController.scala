@@ -38,25 +38,71 @@ class DealsController @Inject()(dealDao: DealDAO, calculator: Calculator) extend
   def getCandlesticks(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
     persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map{deals =>
       val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
-      Ok(Json.toJson(candlesticks))
+      Ok(Json.toJson(candlesticks.map(JsonCandlestick.convert)))
     }
   }
 
   def getSMA(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
+    persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map { deals =>
+      val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
+      val price = candlesticks.map(candlestick => TimePoint(candlestick.date, candlestick.close))
+      val sma7 = calculator.simpleMovingAverageByCandlesticks(candlesticks, 7)
+      val sma15 = calculator.simpleMovingAverageByCandlesticks(candlesticks, 15)
+      val sma30 = calculator.simpleMovingAverageByCandlesticks(candlesticks, 30)
+      Ok(Json.toJson(Map("price" -> price, "sma7" -> sma7, "sma15" -> sma15, "sma30" -> sma30)))
+    }
+  }
+
+  def getLMA(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
+    persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map { deals =>
+      val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
+      val price = candlesticks.map(candlestick => TimePoint(candlestick.date, candlestick.close))
+      val lma7 = calculator.linearMovingAverageByCandlesticks(candlesticks, 7)
+      val lma15 = calculator.linearMovingAverageByCandlesticks(candlesticks, 15)
+      val lma30 = calculator.linearMovingAverageByCandlesticks(candlesticks, 30)
+      Ok(Json.toJson(Map("price" -> price, "lma7" -> lma7, "ema15" -> lma15, "ema30" -> lma30)))
+    }
+  }
+
+  def getMACD(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
+    persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map { deals =>
+      val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
+      Ok(Json.toJson(calculator.getMACDByCandlesticks(candlesticks)))
+    }
+  }
+
+  /*def getEMA(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
     persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map{deals =>
       val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
-      val sma7 = calculator.simpleMovingAverage(candlesticks.map(_.close), 7)
-      val sma15 = calculator.simpleMovingAverage(candlesticks.map(_.close), 15)
-      val sma30 = calculator.simpleMovingAverage(candlesticks.map(_.close), 30)
+      val ema7 = calculator.exponentialMovingAverage(candlesticks.map(_.close), 7)
+      val ema15 = calculator.exponentialMovingAverage(candlesticks.map(_.close), 15)
+      val ema30 = calculator.exponentialMovingAverage(candlesticks.map(_.close), 30)
       val timePoints = candlesticks.zipWithIndex.map {
         case (candlestick, index) =>
-          val sma7value = if (sma7(index) == 0) sma7(6) else sma7(index)
-          val sma15value= if (sma15(index) == 0) sma15(14) else sma15(index)
-          val sma30value= if (sma30(index) == 0) sma30(29) else sma30(index)
-          MAPoint(candlestick.date, sma7value, sma15value, sma30value)
+          val sma7value = if (ema7(index) == 0) ema7(6) else ema7(index)
+          val sma15value= if (ema15(index) == 0) ema15(14) else ema15(index)
+          val sma30value= if (ema30(index) == 0) ema30(29) else ema30(index)
+          MAPoint(candlestick.date, candlestick.open, sma7value, sma15value, sma30value)
       }
       Ok(Json.toJson(timePoints))
     }
   }
+
+  def getMACD(key: String, from: Option[Long], to: Option[Long], duration: Option[Int]) = Action.async {
+    persistence.get(key, from.getOrElse(Long.MinValue), to.getOrElse(Long.MaxValue)).map{deals =>
+      val candlesticks = calculator.getCandlesticks(Duration(duration.getOrElse(15), "minute"))(deals)
+      val ema12 = calculator.exponentialMovingAverage(candlesticks.map(_.close), 12)
+      val ema26 = calculator.exponentialMovingAverage(candlesticks.map(_.close), 26)
+      val timePoints = candlesticks.zipWithIndex.map {
+        case (candlestick, index) =>
+          val sma12value = if (ema12(index) == 0) ema12(11) else ema12(index)
+          val sma26value= if (ema26(index) == 0) ema26(25) else ema26(index)
+          val signal = sma12value - sma26value
+          null
+          //MAPoint(candlestick.date, candlestick.open, sma7value, sma15value, sma30value)
+      }
+      Ok(Json.toJson(timePoints))
+    }
+  }*/
 
 }

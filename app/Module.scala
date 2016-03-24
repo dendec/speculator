@@ -1,5 +1,5 @@
 import com.google.inject.AbstractModule
-import model.DealDAO
+import model.{CandlestickDAO, DealDAO}
 import play.api.libs.concurrent.AkkaGuiceSupport
 import services.{Calculator, ApplicationInit}
 import services.clients.ExchangeClientFactory
@@ -20,6 +20,7 @@ class Module extends AbstractModule with AkkaGuiceSupport {
   override def configure() = {
     bindActor[MonitoringActor]("monitoring-actor")
     bind(classOf[DealDAO]).asEagerSingleton()
+    bind(classOf[CandlestickDAO]).asEagerSingleton()
     bind(classOf[ApplicationInit]).asEagerSingleton()
     bind(classOf[ExchangeClientFactory]).asEagerSingleton()
     bind(classOf[Calculator])

@@ -63,43 +63,69 @@
         }
     }
 
-    function drawSma(data) {
+    function drawLine(data) {
         if (angular.isDefined(data[0])) {
             var chart = fc.chart.cartesian(
-                    fc.scale.dateTime(),
-                    d3.scale.linear())
+                  fc.scale.dateTime(),
+                  d3.scale.linear())
                 .margin(margin)
                 .xDomain(fc.util.extent().fields(['date'])(data))
-                .yDomain(fc.util.extent().fields(['ma7', 'ma15'])(data)).yOrient('left');
+                .yDomain(fc.util.extent().fields(['value'])(data)).yOrient('left');
 
-            var ma7 = fc.series.line()
+            var line = fc.series.line()
                 .xValue(function(d) {
                     return new Date(d.date);
                 })
                 .yValue(function(d) {
-                    return d.ma7;
-                });
-            var ma15 = fc.series.line()
-                .xValue(function(d) {
-                    return new Date(d.date);
-                })
-                .yValue(function(d) {
-                    return d.ma15;
-                });
-            var ma30 = fc.series.line()
-                .xValue(function(d) {
-                    return new Date(d.date);
-                })
-                .yValue(function(d) {
-                    return d.ma30;
+                    return d.value;
                 });
 
             var gridlines = fc.annotation.gridline();
 
             var multi = fc.series.multi()
-                .series([gridlines, ma7, ma15, ma30]);
+              .series([gridlines, line]);
             chart.plotArea(multi);
             chartElement.datum(data).call(chart);
+        }
+    }
+
+    function prepareData(data) {
+        var lineNames = Object.keys(data);
+        var result = []
+        data[lineNames[0]].forEach(function(item, index) {
+            result[index] = {};
+            result[index].date = item.date;
+            lineNames.forEach(function(name) {
+                result[index][name] = data[name][index].value;
+            });
+        });
+        return {lineNames: lineNames, data: result};
+    }
+
+    function drawSma(data) {
+        if (angular.isDefined(data)) {
+            var preparedData = prepareData(data);
+            var chart = fc.chart.cartesian(
+                  fc.scale.dateTime(),
+                  d3.scale.linear())
+                .margin(margin)
+                .xDomain(fc.util.extent().fields(['date'])(preparedData.data))
+                .yDomain(fc.util.extent().fields(preparedData.lineNames)(preparedData.data)).yOrient('left');
+            var series = [fc.annotation.gridline()];
+            preparedData.lineNames.forEach(function(name) {
+                var line = fc.series.line()
+                    .xValue(function(d) {
+                        return new Date(d.date);
+                    })
+                    .yValue(function(d) {
+                        return d[name];
+                    });
+                 series.push(line);
+            });
+            var multi = fc.series.multi()
+              .series(series);
+            chart.plotArea(multi);
+            chartElement.datum(preparedData.data).call(chart);
         }
     }
 
@@ -127,7 +153,7 @@
                     }
                     unwatch = scope.$watch("data", drawCandlestick);
                     break;
-                case "sma":
+                default:
                     if (angular.isDefined(unwatch)) {
                         unwatch();
                         prepareChart(element[0]);

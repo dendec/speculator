@@ -4,6 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import model.ExchangeCurrency.ExchangeCurrency
 import model.{Deal, ExchangeDetails}
+import play.api.Logger
 import play.api.libs.ws.WSClient
 
 import scala.concurrent.Future
@@ -31,7 +32,7 @@ class ExchangeClientFactory @Inject()(ws: WSClient) {
 
   var exchanges: Seq[ExchangeClient] = Seq.empty[ExchangeClient]
 
-  private def createExchange(name: String, from: ExchangeCurrency, to: ExchangeCurrency) = {
+  def createExchange(name: String, from: ExchangeCurrency, to: ExchangeCurrency) = {
     exchanges.find(ex =>
       ex.exchange.name.equals(name) && ex.from.equals(from) && ex.to.equals(to)
     ).orElse {
@@ -42,6 +43,7 @@ class ExchangeClientFactory @Inject()(ws: WSClient) {
       }
       maybeClient.map { client =>
         exchanges = exchanges :+ client
+        Logger.info(s"Exchange client created: $client")
         client
       }
     }

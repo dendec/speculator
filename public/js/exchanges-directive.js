@@ -7,7 +7,7 @@
         $scope.exchangeNames = [];
         $scope.selectedExchangeName = "";
         $scope.points = [];
-        $scope.chartTypes = ["chart", "candlesticks", "sma"];
+        $scope.chartTypes = ["chart", "candlesticks", "sma", "lma", "macd"];
         $scope.selectedChartType = $scope.chartTypes[0];
         $scope.drawingMethod = "chart";
         $scope.durations = [{name: "1 min", value: 1},{name: "3 min", value: 3},{name: "5 min", value: 5},{name: "15 min", value: 15},{name: "30 min", value: 30},{name: "1 hour", value: 60},{name: "2 hours", value: 120}];

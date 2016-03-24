@@ -29,7 +29,7 @@ trait RedisSortedSet[T <: Identifiable[Double]] extends RedisPersistent[T] {
     addCollection(Seq(value), k)
 
   def get(k: String): Future[Seq[T]] = {
-    get(k, 0L, -1L)
+    get(k, Long.MinValue, Long.MaxValue)
   }
 
   def get(k: String, from: Long, to: Long): Future[Seq[T]] = {

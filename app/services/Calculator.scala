@@ -1,8 +1,10 @@
 package services
 
+import java.util.Date
 import javax.inject.Singleton
 
-import model.{Candlestick, Deal}
+import model.TimePoint.NamedTimeSeries
+import model._
 import org.joda.time.{DateTimeZone, Period, DateTime}
 import play.api.Logger
 
@@ -18,6 +20,7 @@ class Calculator {
     val sortedDeals = deals.sortBy(_.date)
     val period = duration.toMillis
     val firstDeal = sortedDeals.head
+    Logger.info(s"calculating candlesticks of ${firstDeal.exchange.name} with period $duration from ${firstDeal.date}")
     val firstDealDateTime = new DateTime(firstDeal.date.getTime, DateTimeZone.UTC)
     val firstDealStartDayDateTime = firstDealDateTime.withTimeAtStartOfDay()
     Logger.debug("firstDealDateTime " + firstDealDateTime)
@@ -28,11 +31,11 @@ class Calculator {
     Logger.debug("startDate " + startDate)
     val lastDeal = sortedDeals.last
     val range = lastDeal.date.getTime - firstDeal.date.getTime
-    val candlestickNumber = range/duration.toMillis
+    val candlestickNumber = range / duration.toMillis
     Logger.debug(s"range: $range, period: $period, candlesticks: $candlestickNumber")
     val groupedDeals = sortedDeals.groupBy(deal => (deal.date.getTime - startDate.getMillis) / period)
     val candlesticks: ArrayBuffer[Candlestick] = ArrayBuffer[Candlestick]()
-    (0L to candlestickNumber).foreach{ candlestickIndex =>
+    (0L to candlestickNumber).foreach { candlestickIndex =>
       val openDate = startDate.getMillis + period * candlestickIndex
       val closeDate = startDate.getMillis + period * (candlestickIndex + 1)
       groupedDeals.get(candlestickIndex) match {
@@ -42,13 +45,12 @@ class Calculator {
           val open = candlesticks.headOption.map(_.close).getOrElse(candlestickDeals.head.price)
           val close = candlestickDeals.last.price
           val volume = candlestickDeals.foldLeft(0.0)(_ + _.amount)
-          candlesticks.+=:(Candlestick(open, close, max.price, min.price, volume, openDate))
+          candlesticks.+=:(new Candlestick(open, close, max.price, min.price, volume, new Date(closeDate)))
           Logger.debug(candlestickDeals.mkString("\n"))
         case None =>
           val prevCandlestick = candlesticks.head
-          candlesticks.+=:(Candlestick(prevCandlestick.close, prevCandlestick.close,prevCandlestick.close, prevCandlestick.close, 0.0, openDate))
+          candlesticks.+=:(new Candlestick(prevCandlestick.close, prevCandlestick.close, prevCandlestick.close, prevCandlestick.close, 0.0, new Date(closeDate)))
       }
-      Logger.debug(candlesticks.toString())
     }
     candlesticks.toSeq.reverse
   }
@@ -62,9 +64,50 @@ class Calculator {
   def exponentialMovingAverage(values: Seq[Double], period: Int, alpha: Double): Seq[Double] =
     weightedMovingAverage(values, (0 until period).map(alpha * math.pow(1 - alpha, _)).toList.reverse)
 
+  def exponentialMovingAverage(values: Seq[Double], period: Int): Seq[Double] =
+    exponentialMovingAverage(values, period, 2.0 / (period.toDouble + 1.0))
+
   def weightedMovingAverage(values: Seq[Double], weights: Seq[Double]): Seq[Double] =
     List.fill(weights.size - 1)(0.0) ::: values.sliding(weights.size).toList.map(_.zip(weights).map {
       case (value, weight) => value * weight
     }.sum)
+
+  def weightedMovingAverageByCandlesticks(candlesticks: Seq[Candlestick], weights: Seq[Double]): Seq[TimePoint] = {
+    val sortedCandlestick = candlesticks.sortBy(_.date)
+    weightedMovingAverage(sortedCandlestick.map(_.close), weights).zip(sortedCandlestick).map{
+      case (value, candlestick) => TimePoint(candlestick.date, if (value == 0.0) sortedCandlestick.head.close else value)
+    }
+  }
+
+  def simpleMovingAverageByCandlesticks(candlesticks: Seq[Candlestick], period: Int): Seq[TimePoint] = {
+    weightedMovingAverageByCandlesticks(candlesticks, List.fill(period)(1.toDouble / period.toDouble))
+  }
+
+  def exponentialMovingAverageByCandlesticks(candlesticks: Seq[Candlestick], period: Int): Seq[TimePoint] = {
+    exponentialMovingAverageByCandlesticks(candlesticks, period,  2.0 / (period.toDouble + 1.0)).toList.reverse
+  }
+
+  def exponentialMovingAverageByCandlesticks(candlesticks: Seq[Candlestick], period: Int, alpha: Double): Seq[TimePoint] = {
+    weightedMovingAverageByCandlesticks(candlesticks, (0 until period).map(alpha * math.pow(1 - alpha, _)).toList.reverse)
+  }
+
+  def linearMovingAverageByCandlesticks(candlesticks: Seq[Candlestick], period: Int): Seq[TimePoint] = {
+    weightedMovingAverageByCandlesticks(candlesticks, (1 to period).map(_.toDouble * 2 / (period + 1) / period).toSeq)
+  }
+
+  def getMACDByCandlesticks(candlesticks: Seq[Candlestick], shortPeriod: Int = 12, longPeriod: Int = 26, differencePeriod: Int = 9): NamedTimeSeries = {
+    val short = linearMovingAverageByCandlesticks(candlesticks, shortPeriod)
+    val long = linearMovingAverageByCandlesticks(candlesticks, longPeriod)
+    val macd = (short zip long).map{
+      case(shortTimePoint, longTimePoint) => TimePoint(shortTimePoint.date, shortTimePoint.value - longTimePoint.value)
+    }
+    val signal = (linearMovingAverage(macd.map(_.value), differencePeriod) zip macd.map(_.date)).map{
+      case (value, date) => TimePoint(date, value)
+    }
+    val diff = (macd zip signal).map {
+      case (macdTimePoint, signalTimePoint) => TimePoint(macdTimePoint.date, macdTimePoint.value - signalTimePoint.value)
+    }
+    Map("macd" -> macd, "signal" -> signal, "diff" -> diff)
+  }
 
 }

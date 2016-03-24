@@ -8,7 +8,7 @@ import play.api.libs.json._
   * Created by denis on 3/11/16.
   */
 @Message
-class ExchangeDetails(var name: String, var baseCurrency: Int, var tradeCurrency: Int){
+class ExchangeDetails(var name: String, var baseCurrency: Int, var tradeCurrency: Int) {
 
   def this() = this("", 0, 0)
 

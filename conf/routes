@@ -10,11 +10,21 @@ GET     /exchanges                  controllers.HomeController.getExchanges
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
-GET     /deals/:key                          controllers.DealsController.get(key: String, from: Option[Long], to: Option[Long])
 GET     /deals/:key/candlesticks             controllers.DealsController.getCandlesticks(key: String, from: Option[Long], to: Option[Long], duration: Option[Int])
 GET     /deals/:key/sma                      controllers.DealsController.getSMA(key: String, from: Option[Long], to: Option[Long], duration: Option[Int])
+GET     /deals/:key/lma                      controllers.DealsController.getLMA(key: String, from: Option[Long], to: Option[Long], duration: Option[Int])
+GET     /deals/:key/macd                     controllers.DealsController.getMACD(key: String, from: Option[Long], to: Option[Long], duration: Option[Int])
+
+GET     /deals/:key                          controllers.DealsController.get(key: String, from: Option[Long], to: Option[Long])
 PUT     /deals/:key/:id                      controllers.DealsController.update(key: String, id: Long)
 POST    /deals/:key/delete                   controllers.DealsController.delete(key: String)
 DELETE  /deals/:key/:id                      controllers.DealsController.deleteById(key: String, id: Long)
 GET     /deals/:key/export                   controllers.DealsController.exportAsJson(key: String)
 POST    /deals/:key/import                   controllers.DealsController.importFromJson(key: String)
+
+GET     /candlesticks/:key                   controllers.CandlesticksController.get(key: String, from: Option[Long], to: Option[Long])
+PUT     /candlesticks/:key/:id               controllers.CandlesticksController.update(key: String, id: Long)
+POST    /candlesticks/:key/delete            controllers.CandlesticksController.delete(key: String)
+DELETE  /candlesticks/:key/:id               controllers.CandlesticksController.deleteById(key: String, id: Long)
+GET     /candlesticks/:key/export            controllers.CandlesticksController.exportAsJson(key: String)
+POST    /candlesticks/:key/import            controllers.CandlesticksController.importFromJson(key: String)

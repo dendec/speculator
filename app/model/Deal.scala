@@ -35,8 +35,6 @@ object JsonDeal {
 
 class DealDAO @Inject() (val akkaSystem: ActorSystem) extends RedisSortedSet[Deal]{
 
-  val defaultKey: String = "deals"
-
   override implicit val byteStringFormatter: ByteStringFormatter[Deal] = new ByteStringFormatter[Deal] {
     def serialize(data: Deal): ByteString = {
       ByteString(ScalaMessagePack.write(data))
