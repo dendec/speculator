@@ -5,6 +5,7 @@ import javax.inject._
 import model.{ExchangeCurrency, JsonExchangeDetails}
 import play.api.libs.json.Json
 import play.api.mvc._
+import services.Calculator
 import services.clients.ExchangeClientFactory
 
 @Singleton

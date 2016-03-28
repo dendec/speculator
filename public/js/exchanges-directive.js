@@ -46,8 +46,7 @@
                 angular.isDefined($scope.selectedExchange.collection) &&
                 !(($scope.selectedChartType != "chart") && !angular.isDefined($scope.selectedDuration))
             if (canDraw) {
-                var urlChartType = ($scope.selectedChartType == "chart") ? "" : "/" + $scope.selectedChartType;
-                var url = "deals/" + $scope.selectedExchange.collection + urlChartType;
+                var url = getUrl();
                 var params = {};
                 if (angular.isDefined($scope.selectedDuration))
                     params.duration = $scope.selectedDuration.value;
@@ -57,6 +56,21 @@
                     $scope.points = result.data;
                     $scope.drawingMethod = $scope.selectedChartType;
                 });
+            }
+        }
+
+        function getUrl() {
+            switch ($scope.selectedChartType) {
+                case "chart":
+                    return "deals/" + $scope.selectedExchange.collection;
+                case "candlesticks":
+                    return "candlesticks/" + $scope.selectedExchange.collection + "_" + $scope.selectedDuration.value + "m";
+                case "sma":
+                    return "analysis/" + $scope.selectedExchange.collection + "_" + $scope.selectedDuration.value + "m/sma";
+                case "lma":
+                    return "analysis/" + $scope.selectedExchange.collection + "_" + $scope.selectedDuration.value + "m/lma";
+                case "macd":
+                    return "analysis/" + $scope.selectedExchange.collection + "_" + $scope.selectedDuration.value + "m/macd";
             }
         }
     }];
