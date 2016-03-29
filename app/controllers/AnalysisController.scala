@@ -2,10 +2,10 @@ package controllers
 
 import javax.inject.Inject
 
-import model.{JsonCandlestick, TimePoint, CandlestickDAO}
+import model.{JsonCandlestick, CandlestickDAO}
 import play.api.libs.json.Json
 import play.api.mvc.{Action, Controller}
-import services.Calculator
+import services.{TimePoint, Calculator}
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 
 /**

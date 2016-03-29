@@ -3,10 +3,10 @@ package services
 import java.util.Date
 import javax.inject.Singleton
 
-import model.TimePoint.NamedTimeSeries
 import model._
-import org.joda.time.{DateTimeZone, Period, DateTime}
+import org.joda.time.{DateTime, DateTimeZone, Period}
 import play.api.Logger
+import play.api.libs.json.{Format, Json}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
@@ -14,14 +14,30 @@ import scala.concurrent.duration.Duration
 /**
   * Created by denis on 3/16/16.
   */
+case class TimePoint(date: Date, value: Double)
+
+object TimePoint {
+  implicit val format: Format[TimePoint] = Json.format[TimePoint]
+}
+
+//Moving Average Convergence/Divergence
+case class MACD(macd: Seq[TimePoint], signal: Seq[TimePoint], diff: Seq[TimePoint])
+
+object MACD {
+  implicit val format: Format[MACD] = Json.format[MACD]
+}
+
 @Singleton
 class Calculator {
-  def getCandlesticks(duration: Duration)(deals: Seq[Deal]): Seq[Candlestick] = {
+  def getCandlesticks(duration: Duration)(deals: Seq[Deal], maybeStartDate: Option[Date] = None): Seq[Candlestick] = {
     val sortedDeals = deals.sortBy(_.date)
     val period = duration.toMillis
     val firstDeal = sortedDeals.head
     Logger.info(s"calculating candlesticks of ${firstDeal.exchange.name} with period $duration from ${firstDeal.date}")
-    val firstDealDateTime = new DateTime(firstDeal.date.getTime, DateTimeZone.UTC)
+    val firstDealDateTime = maybeStartDate match {
+      case Some(startDate) => new DateTime(startDate.getTime, DateTimeZone.UTC)
+      case None => new DateTime(firstDeal.date.getTime, DateTimeZone.UTC)
+    }
     val firstDealStartDayDateTime = firstDealDateTime.withTimeAtStartOfDay()
     Logger.debug("firstDealDateTime " + firstDealDateTime)
     Logger.debug("firstDealStartDayDateTime " + firstDealStartDayDateTime)
@@ -95,7 +111,7 @@ class Calculator {
     weightedMovingAverageByCandlesticks(candlesticks, (1 to period).map(_.toDouble * 2 / (period + 1) / period).toSeq)
   }
 
-  def getMACDByCandlesticks(candlesticks: Seq[Candlestick], shortPeriod: Int = 12, longPeriod: Int = 26, differencePeriod: Int = 9): NamedTimeSeries = {
+  def getMACDByCandlesticks(candlesticks: Seq[Candlestick], shortPeriod: Int = 12, longPeriod: Int = 26, differencePeriod: Int = 9): MACD = {
     val short = linearMovingAverageByCandlesticks(candlesticks, shortPeriod)
     val long = linearMovingAverageByCandlesticks(candlesticks, longPeriod)
     val macd = (short zip long).map{
@@ -107,7 +123,7 @@ class Calculator {
     val diff = (macd zip signal).map {
       case (macdTimePoint, signalTimePoint) => TimePoint(macdTimePoint.date, macdTimePoint.value - signalTimePoint.value)
     }
-    Map("macd" -> macd, "signal" -> signal, "diff" -> diff)
+    MACD(macd, signal, diff)
   }
 
 }

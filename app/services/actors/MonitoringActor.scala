@@ -1,10 +1,10 @@
-package services.clients.actors
+package services.actors
 
 import java.util.Date
 import javax.inject.Inject
 
 import akka.actor.Actor
-import model.{CandlestickDAO, DealDAO}
+import model.{Candlestick, CandlestickDAO, DealDAO}
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
 import services.Calculator
@@ -35,7 +35,7 @@ class MonitoringActor @Inject() (dealDAO: DealDAO, candlestickDAO: CandlestickDA
 
     case MonitoringActor.SaveCandlesticks(exchangeClient: ExchangeClient, duration: Duration) =>
       Logger.info(s"save candlesticks of ${exchangeClient.exchange} duration=${duration.toMinutes} minutes")
-      val collectionName = s"${exchangeClient.exchange.getCollectionName}_${duration.toMinutes}m"
+      val collectionName = Candlestick.getCollectionName(exchangeClient, duration)
       val currentDate = new Date()
       candlestickDAO.get(collectionName, currentDate.getTime - 5 * duration.toMillis, currentDate.getTime).map { savedCandlesticks =>
         if (savedCandlesticks.isEmpty) {
@@ -44,7 +44,7 @@ class MonitoringActor @Inject() (dealDAO: DealDAO, candlestickDAO: CandlestickDA
         else {
           val startDate = savedCandlesticks.maxBy(_.date).date
           dealDAO.get(exchangeClient.exchange.getCollectionName, startDate.getTime, currentDate.getTime).map { deals =>
-            val candlesticks = calculator.getCandlesticks(duration)(deals)
+            val candlesticks = calculator.getCandlesticks(duration)(deals, Some(startDate))
             candlestickDAO.addCollection(candlesticks, collectionName)
           }
         }
@@ -52,7 +52,7 @@ class MonitoringActor @Inject() (dealDAO: DealDAO, candlestickDAO: CandlestickDA
 
     case MonitoringActor.SaveAllCandlesticks(exchangeClient: ExchangeClient, duration: Duration) =>
       Logger.info(s"save all candlesticks of ${exchangeClient.exchange} duration=${duration.toMinutes} minutes")
-      val collectionName = s"${exchangeClient.exchange.getCollectionName}_${duration.toMinutes}m"
+      val collectionName = Candlestick.getCollectionName(exchangeClient, duration)
       val currentDate = new Date()
       candlestickDAO.get(collectionName).map { savedCandlesticks =>
         if (savedCandlesticks.isEmpty)
@@ -63,7 +63,7 @@ class MonitoringActor @Inject() (dealDAO: DealDAO, candlestickDAO: CandlestickDA
         else {
           val startDate = savedCandlesticks.maxBy(_.date).date
           dealDAO.get(exchangeClient.exchange.getCollectionName, startDate.getTime, currentDate.getTime).map { deals =>
-            val candlesticks = calculator.getCandlesticks(duration)(deals)
+            val candlesticks = calculator.getCandlesticks(duration)(deals, Some(startDate))
             candlestickDAO.addCollection(candlesticks, collectionName)
           }
         }

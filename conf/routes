@@ -28,3 +28,6 @@ POST    /candlesticks/:key/delete            controllers.CandlesticksController.
 DELETE  /candlesticks/:key/:id               controllers.CandlesticksController.deleteById(key: String, id: Long)
 GET     /candlesticks/:key/export            controllers.CandlesticksController.exportAsJson(key: String)
 POST    /candlesticks/:key/import            controllers.CandlesticksController.importFromJson(key: String)
+
+GET     /decision/:key                       controllers.DecisionController.get(key: String, from: Option[Long], to: Option[Long])
+GET     /decision/:key/export                controllers.DecisionController.exportAsJson(key: String)

@@ -11,6 +11,9 @@ import model.redis.RedisSortedSet
 import org.msgpack.ScalaMessagePack
 import org.msgpack.annotation.Message
 import play.api.libs.json.{Json, Format}
+import services.clients.ExchangeClient
+
+import scala.concurrent.duration.Duration
 
 /**
   * Created by denis on 3/16/16.
@@ -25,6 +28,11 @@ class Candlestick(var open: Double, var close: Double, var high: Double, var low
   override def setId(id: Double) = date = new Date(id.toLong)
 
   override def toString = s"Candlestick($open, $close, $high, $low, $volume, $date)"
+}
+
+object Candlestick {
+  def getCollectionName(exchangeClient: ExchangeClient, duration: Duration) =
+    s"${exchangeClient.exchange.getCollectionName}_${duration.toMinutes}m"
 }
 
 class CandlestickDAO @Inject() (val akkaSystem: ActorSystem) extends RedisSortedSet[Candlestick]{
